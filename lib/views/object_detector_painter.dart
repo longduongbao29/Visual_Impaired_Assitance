@@ -6,7 +6,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 
-import 'coordinates_translator.dart';
+import '../controllers/coordinates_translator.dart';
 
 class ObjectDetectorPainter extends CustomPainter {
   ObjectDetectorPainter(
