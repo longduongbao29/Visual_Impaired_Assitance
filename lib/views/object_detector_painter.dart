@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import 'package:visual_impaired_app/globals.dart' as globals;
 
 import '../controllers/coordinates_translator.dart';
 
@@ -31,21 +32,20 @@ class ObjectDetectorPainter extends CustomPainter {
     final Paint background = Paint()..color = Color(0x99000000);
 
     for (final DetectedObject detectedObject in _objects) {
+
       final ParagraphBuilder builder = ParagraphBuilder(
         ParagraphStyle(
             textAlign: TextAlign.left,
             fontSize: 16,
             textDirection: TextDirection.ltr),
       );
-      builder.pushStyle(
-          ui.TextStyle(color: Colors.lightGreenAccent, background: background));
-      if (detectedObject.labels.isNotEmpty) {
-        final label = detectedObject.labels
-            .reduce((a, b) => a.confidence > b.confidence ? a : b);
-        builder.addText('${label.text} ${label.confidence}\n');
-      }
-      builder.pop();
-
+      // builder.pushStyle(
+      //     ui.TextStyle(color: Colors.lightGreenAccent, background: background));
+      // if (detectedObject.labels.isNotEmpty) {
+      //   final label = detectedObject.labels
+      //       .reduce((a, b) => a.confidence > b.confidence ? a : b);
+      //   builder.addText('${label.text} ${label.confidence}\n');
+      // }
       final left = translateX(
         detectedObject.boundingBox.left,
         size,
@@ -74,6 +74,27 @@ class ObjectDetectorPainter extends CustomPainter {
         rotation,
         cameraLensDirection,
       );
+      final centerX = (left + right) / 2;
+      final matchingLabel = findMatchingLabel(globals.targetSearch, detectedObject.labels);
+      if (matchingLabel != null) {
+        builder.pushStyle(
+            ui.TextStyle(color: Colors.red, background: background));
+        builder.addText('$matchingLabel ${calculatePosition(centerX, size.width)}\n');
+        builder.pop();
+      }
+      else {
+        if (detectedObject.labels.isNotEmpty) {
+          final label = detectedObject.labels
+              .reduce((a, b) => a.confidence > b.confidence ? a : b);
+          builder.pushStyle(
+              ui.TextStyle(color: Colors.lightGreenAccent, background: background));
+          builder.addText('${label.text} ${label.confidence} ${calculatePosition(centerX, size.width)}\n');
+          builder.pop();
+        }
+      }
+      // builder.pop();
+
+
 
       canvas.drawRect(
         Rect.fromLTRB(left, top, right, bottom),
@@ -92,6 +113,26 @@ class ObjectDetectorPainter extends CustomPainter {
                 : left,
             top),
       );
+    }
+  }
+  String? findMatchingLabel(String target, List<Label> labels) {
+    for (final label in labels) {
+      String labelLowerCase = label.text.toLowerCase();
+      String cleanedText = labelLowerCase.replaceAll(" ", "").trim();
+      if (cleanedText == target) {
+        return label.text;
+      }
+    }
+    return null;
+  }
+  String calculatePosition(double objectX, double screenWidth) {
+    final screenWidthHalf = screenWidth / 2;
+    if (objectX < screenWidthHalf) {
+      return 'left';
+    } else if (objectX > screenWidthHalf) {
+      return 'right';
+    } else {
+      return 'center';
     }
   }
 
