@@ -81,6 +81,13 @@ class ObjectDetectorPainter extends CustomPainter {
             ui.TextStyle(color: Colors.red, background: background));
         builder.addText('$matchingLabel ${calculatePosition(centerX, size.width)}\n');
         builder.pop();
+      } else if(globals.targetSearch == "môtảxungquanh"){
+        final label = detectedObject.labels
+            .reduce((a, b) => a.confidence > b.confidence ? a : b);
+        builder.pushStyle(
+            ui.TextStyle(color: Colors.red, background: background));
+        builder.addText('${label.text} ${label.confidence} ${calculatePosition(centerX, size.width)}\n');
+        builder.pop();
       }
       else {
         if (detectedObject.labels.isNotEmpty) {
