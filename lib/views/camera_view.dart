@@ -113,7 +113,13 @@ class _CameraViewState extends State<CameraView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: _liveFeedBody());
+    return Stack(
+      children: [
+        _liveFeedBody(),
+        _descriptionModeButton(),
+        // Thêm vào đây nếu bạn có thêm các floatingActionButton hoặc các phần tử UI khác.
+      ],
+    );
   }
 
   Widget _liveFeedBody() {
@@ -473,4 +479,40 @@ class _CameraViewState extends State<CameraView> {
       ),
     );
   }
+
+//   I add
+  bool _isDescriptionModeActive = false;
+  Widget _descriptionModeButton() => Positioned(
+    bottom: 58,
+    left: 8,
+    child: SizedBox(
+      height: 50.0,
+      width: 50.0,
+      child: FloatingActionButton(
+        heroTag: Object(),
+
+        onPressed: () {
+
+          if (_isDescriptionModeActive) {
+            // Deactivate description mode
+            globals.targetSearch = "";
+          } else {
+            // Activate description mode
+            globals.targetSearch = "môtảxungquanh";
+          }
+          // Toggle the boolean state variable
+          setState(() {
+            _isDescriptionModeActive = !_isDescriptionModeActive;
+          });
+        },
+        backgroundColor: Colors.white,
+        child: Icon(
+          _isDescriptionModeActive ? Icons.volume_off : Icons.volume_up,
+          size: 25,
+        ),
+      ),
+    ),
+  );
 }
+
+
