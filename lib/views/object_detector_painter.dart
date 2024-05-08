@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
 import 'dart:ui' as ui;
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
@@ -16,6 +15,7 @@ class ObjectDetectorPainter extends CustomPainter {
   List<String> wordQueue = [];
   bool isSpeaking = false;
   Timer? _timer;
+  bool _isModeActive = true;
 
   ObjectDetectorPainter(
       this._objects,
@@ -23,18 +23,37 @@ class ObjectDetectorPainter extends CustomPainter {
       this.rotation,
       this.cameraLensDirection,
       ) {
-    // Khởi tạo một timer để đọc danh sách vật thể mỗi 0,8s
     _timer = Timer.periodic(Duration(milliseconds: 800), (Timer timer) {
       handleQueueProcessing();
-    });
+    }
+    );
   }
 
   @override
   void dispose() {
-    // Hủy timer khi không cần thiết
     _timer?.cancel();
     // super.dispose();
   }
+
+  void stopSpeaking() {
+    isSpeaking = false;
+    dispose();
+  }
+
+
+  void updateMode(bool mode) {
+    if (mode) {
+      _timer = Timer.periodic(Duration(milliseconds: 800), (Timer timer) {
+        handleQueueProcessing();
+      });
+    } else {
+      stopSpeaking();
+      wordQueue.clear();
+      _isModeActive = mode;
+    }
+  }
+
+
 
   void handleQueueProcessing() {
     if (!isSpeaking && wordQueue.isNotEmpty) {
@@ -43,7 +62,10 @@ class ObjectDetectorPainter extends CustomPainter {
   }
 
   Future<void> processQueue() async {
-    if (wordQueue.isEmpty || isSpeaking) {
+    if (globals.targetSearch =="") {
+      updateMode(false);
+      return;
+    } else if (wordQueue.isEmpty || isSpeaking) {
       return;
     }
     var word = wordQueue.removeAt(0);
@@ -51,6 +73,8 @@ class ObjectDetectorPainter extends CustomPainter {
     await speak(word);
     isSpeaking = false;
   }
+
+
 
   final List<DetectedObject> _objects;
   final Size imageSize;

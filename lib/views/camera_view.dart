@@ -116,8 +116,8 @@ class _CameraViewState extends State<CameraView> {
     return Stack(
       children: [
         _liveFeedBody(),
-        _descriptionModeButton(),
-        // Thêm vào đây nếu bạn có thêm các floatingActionButton hoặc các phần tử UI khác.
+
+
       ],
     );
   }
@@ -188,7 +188,7 @@ class _CameraViewState extends State<CameraView> {
           ),
         ),
       );
-
+  bool _isModeActive = false;
   Widget _voiceButton() => Positioned(
     bottom: 8,
     left: 8,
@@ -197,7 +197,15 @@ class _CameraViewState extends State<CameraView> {
       width: 50.0,
       child: FloatingActionButton(
         heroTag: Object(),
-        onPressed: _speechToText.isListening ? stopListening : startListening,
+        onPressed: () {
+          _speechToText.isListening ? stopListening() : startListening();
+          if(_isModeActive) {
+            globals.targetSearch = "";
+          }
+          setState(() {
+            _isModeActive = !_isModeActive;
+          });
+        },
         backgroundColor: Colors.white,
         child: Icon(
           _speechToText.isNotListening ? Icons.mic_off : Icons.mic,
@@ -479,40 +487,6 @@ class _CameraViewState extends State<CameraView> {
       ),
     );
   }
-
-//   I add
-  bool _isDescriptionModeActive = false;
-  Widget _descriptionModeButton() => Positioned(
-    bottom: 58,
-    left: 8,
-    child: SizedBox(
-      height: 50.0,
-      width: 50.0,
-      child: FloatingActionButton(
-        heroTag: Object(),
-
-        onPressed: () {
-
-          if (_isDescriptionModeActive) {
-            // Deactivate description mode
-            globals.targetSearch = "";
-          } else {
-            // Activate description mode
-            globals.targetSearch = "môtảxungquanh";
-          }
-          // Toggle the boolean state variable
-          setState(() {
-            _isDescriptionModeActive = !_isDescriptionModeActive;
-          });
-        },
-        backgroundColor: Colors.white,
-        child: Icon(
-          _isDescriptionModeActive ? Icons.volume_off : Icons.volume_up,
-          size: 25,
-        ),
-      ),
-    ),
-  );
 }
 
 
