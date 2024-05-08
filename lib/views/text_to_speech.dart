@@ -3,7 +3,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 FlutterTts flutterTts = FlutterTts();
 
 Future<void> speak(String textToSpeak) async {
-  await flutterTts.setLanguage("vi-VN");
+  await flutterTts.setLanguage("en-US");
   await flutterTts.setSpeechRate(0.5);
   await flutterTts.setVolume(1.0);
   await flutterTts.setPitch(1);
@@ -19,3 +19,4 @@ Future<void> speak(String textToSpeak) async {
     print('An error occurred: $e');
   }
 }
+

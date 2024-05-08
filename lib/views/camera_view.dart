@@ -1,9 +1,12 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:visual_impaired_app/globals.dart' as globals;
 
 class CameraView extends StatefulWidget {
   CameraView(
@@ -38,17 +41,23 @@ class _CameraViewState extends State<CameraView> {
   double _maxAvailableExposureOffset = 0.0;
   double _currentExposureOffset = 0.0;
   bool _changingCameraLens = false;
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  String wordsSpoken = "";
+  double confidenceLevel = 0;
 
   @override
   void initState() {
     super.initState();
 
     _initialize();
+    // initSpeech();
   }
 
   void _initialize() async {
     if (_cameras.isEmpty) {
       _cameras = await availableCameras();
+      _speechEnabled = await _speechToText.initialize();
     }
     for (var i = 0; i < _cameras.length; i++) {
       if (_cameras[i].lensDirection == widget.initialCameraLensDirection) {
@@ -61,6 +70,41 @@ class _CameraViewState extends State<CameraView> {
     }
   }
 
+  // void initSpeech() async{
+  //   _speechEnabled = await _speechToText.initialize();
+  //   setState(() {
+  //   });
+  // }
+
+  void startListening() async{
+    await _speechToText.listen(onResult: onSpeechResult);
+    setState(() {
+      confidenceLevel = 0;
+    });
+  }
+  void stopListening() async{
+    await _speechToText.stop();
+    setState(() {
+
+    });
+  }
+  void onSpeechResult(result){
+    setState(() {
+      wordsSpoken = "${result.recognizedWords}";
+      confidenceLevel = result.confidence;
+    });
+    extractTargetObject(wordsSpoken);
+  }
+
+  void extractTargetObject(String spokenText) {
+    String tmpText = spokenText.toLowerCase();
+    String cleanedText = tmpText.replaceAll("tìm", "").trim();
+      List<String> words = cleanedText.split(" ");
+      setState(() {
+        globals.targetSearch = words.join("");
+      });
+  }
+
   @override
   void dispose() {
     _stopLiveFeed();
@@ -69,7 +113,13 @@ class _CameraViewState extends State<CameraView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: _liveFeedBody());
+    return Stack(
+      children: [
+        _liveFeedBody(),
+        _descriptionModeButton(),
+        // Thêm vào đây nếu bạn có thêm các floatingActionButton hoặc các phần tử UI khác.
+      ],
+    );
   }
 
   Widget _liveFeedBody() {
@@ -96,6 +146,8 @@ class _CameraViewState extends State<CameraView> {
           // _detectionViewModeToggle(),
           _zoomControl(),
           _exposureControl(),
+          _voiceButton(),
+          _additionalText()
         ],
       ),
     );
@@ -137,6 +189,52 @@ class _CameraViewState extends State<CameraView> {
         ),
       );
 
+  Widget _voiceButton() => Positioned(
+    bottom: 8,
+    left: 8,
+    child: SizedBox(
+      height: 50.0,
+      width: 50.0,
+      child: FloatingActionButton(
+        heroTag: Object(),
+        onPressed: _speechToText.isListening ? stopListening : startListening,
+        backgroundColor: Colors.white,
+        child: Icon(
+          _speechToText.isNotListening ? Icons.mic_off : Icons.mic,
+          size: 25,
+        ),
+      ),
+    ),
+  );
+  Widget _additionalText() => Positioned(
+    top: 64,
+    left: 8,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+        _speechToText.isListening ? "Listening..." : _speechEnabled
+        ? "Tap the microphone to start listening..." : "Speech not available",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16.0,
+          ),
+        ),
+        // if (confidenceLevel > 0 && _speechToText.isNotListening)
+          Text(
+            globals.targetSearch,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10.0,
+            ),
+          ),
+
+      ],
+    ),
+  );
+
+
+
   Widget _switchLiveCameraToggle() => Positioned(
         bottom: 8,
         right: 8,
@@ -146,7 +244,7 @@ class _CameraViewState extends State<CameraView> {
           child: FloatingActionButton(
             heroTag: Object(),
             onPressed: _switchLiveCamera,
-            backgroundColor: Colors.black54,
+            backgroundColor: Colors.white,
             child: Icon(
               Platform.isIOS
                   ? Icons.flip_camera_ios_outlined
@@ -381,4 +479,40 @@ class _CameraViewState extends State<CameraView> {
       ),
     );
   }
+
+//   I add
+  bool _isDescriptionModeActive = false;
+  Widget _descriptionModeButton() => Positioned(
+    bottom: 58,
+    left: 8,
+    child: SizedBox(
+      height: 50.0,
+      width: 50.0,
+      child: FloatingActionButton(
+        heroTag: Object(),
+
+        onPressed: () {
+
+          if (_isDescriptionModeActive) {
+            // Deactivate description mode
+            globals.targetSearch = "";
+          } else {
+            // Activate description mode
+            globals.targetSearch = "môtảxungquanh";
+          }
+          // Toggle the boolean state variable
+          setState(() {
+            _isDescriptionModeActive = !_isDescriptionModeActive;
+          });
+        },
+        backgroundColor: Colors.white,
+        child: Icon(
+          _isDescriptionModeActive ? Icons.volume_off : Icons.volume_up,
+          size: 25,
+        ),
+      ),
+    ),
+  );
 }
+
+
