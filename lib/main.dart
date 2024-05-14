@@ -18,11 +18,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Visual Impaired Assistance',
+      debugShowCheckedModeBanner: false, // Remove the debug banner
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: ObjectDetectorView(),
+      home: SafeArea(
+        child: ObjectDetectorView(), // Wrap the content with SafeArea
+      ),
     );
   }
 }

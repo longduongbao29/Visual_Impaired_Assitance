@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:visual_impaired_app/globals.dart' as globals;
+import 'package:visual_impaired_app/views/text_to_speech.dart';
 
 class CameraView extends StatefulWidget {
   CameraView(
@@ -58,6 +59,7 @@ class _CameraViewState extends State<CameraView> {
     if (_cameras.isEmpty) {
       _cameras = await availableCameras();
       _speechEnabled = await _speechToText.initialize();
+      await speak("Tap the microphone in the bottom to start listening");
     }
     for (var i = 0; i < _cameras.length; i++) {
       if (_cameras[i].lensDirection == widget.initialCameraLensDirection) {
@@ -78,19 +80,22 @@ class _CameraViewState extends State<CameraView> {
 
   void startListening() async{
     await _speechToText.listen(onResult: onSpeechResult);
+    await speak("Listening");
     setState(() {
       confidenceLevel = 0;
     });
   }
   void stopListening() async{
     await _speechToText.stop();
+    await speak("Stop listening, tap the microphone to start listening");
     setState(() {
-
+      // globals.targetSearch = "";
+      wordsSpoken = "";
     });
   }
   void onSpeechResult(result){
     setState(() {
-      wordsSpoken = "${result.recognizedWords}";
+      wordsSpoken = _speechToText.isListening ? "${result.recognizedWords}" : "" ;
       confidenceLevel = result.confidence;
     });
     extractTargetObject(wordsSpoken);
@@ -142,10 +147,10 @@ class _CameraViewState extends State<CameraView> {
                   ),
           ),
           // _backButton(),
-          _switchLiveCameraToggle(),
+          // _switchLiveCameraToggle(),
           // _detectionViewModeToggle(),
-          _zoomControl(),
-          _exposureControl(),
+          // _zoomControl(),
+          // _exposureControl(),
           _voiceButton(),
           _additionalText()
         ],
@@ -189,12 +194,11 @@ class _CameraViewState extends State<CameraView> {
         ),
       );
   bool _isModeActive = false;
-  Widget _voiceButton() => Positioned(
-    bottom: 8,
-    left: 8,
+  Widget _voiceButton() => Align(
+    alignment: Alignment.bottomCenter,
     child: SizedBox(
-      height: 50.0,
-      width: 50.0,
+      height: MediaQuery.of(context).size.height * 0.15, // 15% chiều cao màn hình
+      width: MediaQuery.of(context).size.width * 0.9, // 90% chiều rộng màn hình
       child: FloatingActionButton(
         heroTag: Object(),
         onPressed: () {
