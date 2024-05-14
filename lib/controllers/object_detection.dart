@@ -177,6 +177,7 @@ class _ObjectDetectorView extends State<ObjectDetectorView> {
     if (_objectDetector == null) return;
     if (!_canProcess) return;
     if (_isBusy) return;
+
     _isBusy = true;
     setState(() {
       _text = '';
