@@ -12,12 +12,12 @@ import 'package:visual_impaired_app/views/text_to_speech.dart';
 class CameraView extends StatefulWidget {
   CameraView(
       {Key? key,
-      required this.customPaint,
-      required this.onImage,
-      this.onCameraFeedReady,
-      this.onDetectorViewModeChanged,
-      this.onCameraLensDirectionChanged,
-      this.initialCameraLensDirection = CameraLensDirection.back})
+        required this.customPaint,
+        required this.onImage,
+        this.onCameraFeedReady,
+        this.onDetectorViewModeChanged,
+        this.onCameraLensDirectionChanged,
+        this.initialCameraLensDirection = CameraLensDirection.back})
       : super(key: key);
 
   final CustomPaint? customPaint;
@@ -44,8 +44,11 @@ class _CameraViewState extends State<CameraView> {
   bool _changingCameraLens = false;
   final SpeechToText _speechToText = SpeechToText();
   bool _speechEnabled = false;
+  bool _stopTalking = false;
   String wordsSpoken = "";
   double confidenceLevel = 0;
+  final Set<String> spokenWords1 = {};
+  final Set<String> spokenWords2 = {};
 
   @override
   void initState() {
@@ -59,7 +62,8 @@ class _CameraViewState extends State<CameraView> {
     if (_cameras.isEmpty) {
       _cameras = await availableCameras();
       _speechEnabled = await _speechToText.initialize();
-      await speak("Tap the microphone in the bottom to start listening");
+      await speak("Tap the button in the bottom to start listening, tap again to stop listening."
+          "       To stop detecting, press and hold the button");
     }
     for (var i = 0; i < _cameras.length; i++) {
       if (_cameras[i].lensDirection == widget.initialCameraLensDirection) {
@@ -83,19 +87,51 @@ class _CameraViewState extends State<CameraView> {
     await speak("Listening");
     setState(() {
       confidenceLevel = 0;
+      _stopTalking = false;
     });
   }
-  void stopListening() async{
+  void stopListening() async {
     await _speechToText.stop();
-    await speak("Stop listening, tap the microphone to start listening");
+    await speak("Stop listening");
+
+    // Duyệt qua từng từ trong queue
+    while (globals.wordDescribingQueue.isNotEmpty) {
+      String word = globals.wordDescribingQueue.removeAt(0);
+
+      // Kiểm tra xem từ đã được đọc chưa
+      if (!spokenWords1.contains(word)) {
+        // Thêm từ vào Set và đọc nếu chưa đọc
+        spokenWords1.add(word);
+        await speak(word);
+      }
+
+      // Trì hoãn 1 giây trước khi đọc từ tiếp theo
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    // globals.wordDescribingQueue.clear();
+    // spokenWords1.clear();
+    while (globals.wordSearchingQueue.isNotEmpty) {
+      String word = globals.wordSearchingQueue.removeAt(0);
+      // Kiểm tra xem từ đã được đọc chưa
+      if (!spokenWords2.contains(word)) {
+        // Thêm từ vào Set và đọc nếu chưa đọc
+        spokenWords2.add(word);
+        await speak(word);
+      }
+      // Trì hoãn 1 giây trước khi đọc từ tiếp theo
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    // globals.wordSearchingQueue.clear();
+    // spokenWords2.clear();
     setState(() {
-      // globals.targetSearch = "";
-      wordsSpoken = "";
+      // Cập nhật trạng thái sau khi đọc hết queue
     });
   }
   void onSpeechResult(result){
     setState(() {
-      wordsSpoken = _speechToText.isListening ? "${result.recognizedWords}" : "" ;
+      wordsSpoken = "${result.recognizedWords}";
+      // wordsSpoken = _stopTalking ? "" : "${result.recognizedWords}";
+      // wordsSpoken = _speechToText.isListening ? "${result.recognizedWords}" : "";
       confidenceLevel = result.confidence;
     });
     extractTargetObject(wordsSpoken);
@@ -104,10 +140,11 @@ class _CameraViewState extends State<CameraView> {
   void extractTargetObject(String spokenText) {
     String tmpText = spokenText.toLowerCase();
     String cleanedText = tmpText.replaceAll("tìm", "").trim();
-      List<String> words = cleanedText.split(" ");
-      setState(() {
-        globals.targetSearch = words.join("");
-      });
+    List<String> words = cleanedText.split(" ");
+    setState(() {
+      // globals.targetSearch = _stopTalking ? "" : words.join("");
+      globals.targetSearch = words.join("");
+    });
   }
 
   @override
@@ -139,17 +176,17 @@ class _CameraViewState extends State<CameraView> {
           Center(
             child: _changingCameraLens
                 ? Center(
-                    child: const Text('Changing camera lens'),
-                  )
+              child: const Text('Changing camera lens'),
+            )
                 : CameraPreview(
-                    _controller!,
-                    child: widget.customPaint,
-                  ),
+              _controller!,
+              child: widget.customPaint,
+            ),
           ),
           // _backButton(),
           // _switchLiveCameraToggle(),
           // _detectionViewModeToggle(),
-          // _zoomControl(),
+          _zoomControl(),
           // _exposureControl(),
           _voiceButton(),
           _additionalText()
@@ -177,47 +214,66 @@ class _CameraViewState extends State<CameraView> {
   //     );
 
   Widget _detectionViewModeToggle() => Positioned(
-        bottom: 8,
-        left: 8,
-        child: SizedBox(
-          height: 50.0,
-          width: 50.0,
-          child: FloatingActionButton(
-            heroTag: Object(),
-            onPressed: widget.onDetectorViewModeChanged,
-            backgroundColor: Colors.black54,
-            child: Icon(
-              Icons.photo_library_outlined,
-              size: 25,
-            ),
-          ),
-        ),
-      );
-  bool _isModeActive = false;
-  Widget _voiceButton() => Align(
-    alignment: Alignment.bottomCenter,
+    bottom: 8,
+    left: 8,
     child: SizedBox(
-      height: MediaQuery.of(context).size.height * 0.15, // 15% chiều cao màn hình
-      width: MediaQuery.of(context).size.width * 0.9, // 90% chiều rộng màn hình
+      height: 50.0,
+      width: 50.0,
       child: FloatingActionButton(
         heroTag: Object(),
-        onPressed: () {
-          _speechToText.isListening ? stopListening() : startListening();
-          if(_isModeActive) {
-            globals.targetSearch = "";
-          }
-          setState(() {
-            _isModeActive = !_isModeActive;
-          });
-        },
-        backgroundColor: Colors.white,
+        onPressed: widget.onDetectorViewModeChanged,
+        backgroundColor: Colors.black54,
         child: Icon(
-          _speechToText.isNotListening ? Icons.mic_off : Icons.mic,
+          Icons.photo_library_outlined,
           size: 25,
         ),
       ),
     ),
   );
+  bool _isModeActive = false;
+  Widget _voiceButton() => Align(
+    // bottom: 30,
+    alignment: Alignment.bottomCenter,
+    child: SizedBox(
+      height: MediaQuery.of(context).size.height * 0.15, // 15% chiều cao màn hình
+      width: MediaQuery.of(context).size.width * 0.9, // 90% chiều rộng màn hình
+      // height: 150.0, // 15% chiều cao màn hình
+      // width: 300.0, //
+      child: GestureDetector(
+        // Add LongPressGestureRecognizer
+        child: FloatingActionButton(
+          heroTag: Object(),
+          onPressed: () {
+            _speechToText.isListening ? stopListening() : startListening();
+            if (_isModeActive) {
+              globals.targetSearch = "";
+            }
+            setState(() {
+              _isModeActive = !_isModeActive;
+            });
+          },
+          backgroundColor: Colors.white,
+          child: Icon(
+            _speechToText.isNotListening ? Icons.mic_off : Icons.mic,
+            size: 25,
+          ),
+        ),
+        onLongPress: () {
+          // Implement your long press logic here
+          setState(() {
+            speak('Stop detecting!'); // Example placeholder
+            // _stopTalking = true;
+            globals.targetSearch = "";
+            globals.wordDescribingQueue.clear();
+            globals.wordSearchingQueue.clear();
+            spokenWords1.clear();
+            spokenWords2.clear();
+          });
+        },
+      ),
+    ),
+  );
+
   Widget _additionalText() => Positioned(
     top: 64,
     left: 8,
@@ -225,21 +281,21 @@ class _CameraViewState extends State<CameraView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-        _speechToText.isListening ? "Listening..." : _speechEnabled
-        ? "Tap the microphone to start listening..." : "Speech not available",
+          _speechToText.isListening ? "Listening..." : _speechEnabled
+              ? "Tap the microphone to start listening..." : "Speech not available",
           style: TextStyle(
             color: Colors.white,
             fontSize: 16.0,
           ),
         ),
         // if (confidenceLevel > 0 && _speechToText.isNotListening)
-          Text(
-            globals.targetSearch,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 10.0,
-            ),
+        Text(
+          globals.targetSearch,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10.0,
           ),
+        ),
 
       ],
     ),
@@ -248,84 +304,54 @@ class _CameraViewState extends State<CameraView> {
 
 
   Widget _switchLiveCameraToggle() => Positioned(
-        bottom: 8,
-        right: 8,
-        child: SizedBox(
-          height: 50.0,
-          width: 50.0,
-          child: FloatingActionButton(
-            heroTag: Object(),
-            onPressed: _switchLiveCamera,
-            backgroundColor: Colors.white,
-            child: Icon(
-              Platform.isIOS
-                  ? Icons.flip_camera_ios_outlined
-                  : Icons.flip_camera_android_outlined,
-              size: 25,
-            ),
-          ),
+    bottom: 8,
+    right: 8,
+    child: SizedBox(
+      height: 50.0,
+      width: 50.0,
+      child: FloatingActionButton(
+        heroTag: Object(),
+        onPressed: _switchLiveCamera,
+        backgroundColor: Colors.white,
+        child: Icon(
+          Platform.isIOS
+              ? Icons.flip_camera_ios_outlined
+              : Icons.flip_camera_android_outlined,
+          size: 25,
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _zoomControl() => Positioned(
-        bottom: 16,
-        left: 0,
-        right: 0,
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: SizedBox(
-            width: 250,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: _currentZoomLevel,
-                    min: _minAvailableZoom,
-                    max: _maxAvailableZoom,
-                    activeColor: Colors.white,
-                    inactiveColor: Colors.white30,
-                    onChanged: (value) async {
-                      setState(() {
-                        _currentZoomLevel = value;
-                      });
-                      await _controller?.setZoomLevel(value);
-                    },
-                  ),
-                ),
-                Container(
-                  width: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Center(
-                      child: Text(
-                        '${_currentZoomLevel.toStringAsFixed(1)}x',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+    bottom: 16,
+    left: 0,
+    right: 0,
+    child: Align(
+      alignment: Alignment.bottomCenter,
+      child: SizedBox(
+        width: 250,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Slider(
+                value: _currentZoomLevel,
+                min: _minAvailableZoom,
+                max: _maxAvailableZoom,
+                activeColor: Colors.white,
+                inactiveColor: Colors.white30,
+                onChanged: (value) async {
+                  setState(() {
+                    _currentZoomLevel = value;
+                  });
+                  await _controller?.setZoomLevel(value);
+                },
+              ),
             ),
-          ),
-        ),
-      );
-
-  Widget _exposureControl() => Positioned(
-        top: 40,
-        right: 8,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: 250,
-          ),
-          child: Column(children: [
             Container(
-              width: 55,
+              width: 50,
               decoration: BoxDecoration(
                 color: Colors.black54,
                 borderRadius: BorderRadius.circular(10.0),
@@ -334,36 +360,66 @@ class _CameraViewState extends State<CameraView> {
                 padding: const EdgeInsets.all(8.0),
                 child: Center(
                   child: Text(
-                    '${_currentExposureOffset.toStringAsFixed(1)}x',
+                    '${_currentZoomLevel.toStringAsFixed(1)}x',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
             ),
-            Expanded(
-              child: RotatedBox(
-                quarterTurns: 3,
-                child: SizedBox(
-                  height: 30,
-                  child: Slider(
-                    value: _currentExposureOffset,
-                    min: _minAvailableExposureOffset,
-                    max: _maxAvailableExposureOffset,
-                    activeColor: Colors.white,
-                    inactiveColor: Colors.white30,
-                    onChanged: (value) async {
-                      setState(() {
-                        _currentExposureOffset = value;
-                      });
-                      await _controller?.setExposureOffset(value);
-                    },
-                  ),
-                ),
-              ),
-            )
-          ]),
+          ],
         ),
-      );
+      ),
+    ),
+  );
+
+  Widget _exposureControl() => Positioned(
+    top: 40,
+    right: 8,
+    child: ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: 250,
+      ),
+      child: Column(children: [
+        Container(
+          width: 55,
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(
+              child: Text(
+                '${_currentExposureOffset.toStringAsFixed(1)}x',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: RotatedBox(
+            quarterTurns: 3,
+            child: SizedBox(
+              height: 30,
+              child: Slider(
+                value: _currentExposureOffset,
+                min: _minAvailableExposureOffset,
+                max: _maxAvailableExposureOffset,
+                activeColor: Colors.white,
+                inactiveColor: Colors.white30,
+                onChanged: (value) async {
+                  setState(() {
+                    _currentExposureOffset = value;
+                  });
+                  await _controller?.setExposureOffset(value);
+                },
+              ),
+            ),
+          ),
+        )
+      ]),
+    ),
+  );
 
   Future _startLiveFeed() async {
     final camera = _cameras[_cameraIndex];
@@ -450,7 +506,7 @@ class _CameraViewState extends State<CameraView> {
       rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
     } else if (Platform.isAndroid) {
       var rotationCompensation =
-          _orientations[_controller!.value.deviceOrientation];
+      _orientations[_controller!.value.deviceOrientation];
       if (rotationCompensation == null) return null;
       if (camera.lensDirection == CameraLensDirection.front) {
         // front-facing

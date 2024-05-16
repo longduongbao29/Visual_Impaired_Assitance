@@ -23,10 +23,10 @@ class ObjectDetectorPainter extends CustomPainter {
       this.rotation,
       this.cameraLensDirection,
       ) {
-    _timer = Timer.periodic(Duration(milliseconds: 800), (Timer timer) {
-      handleQueueProcessing();
-    }
-    );
+    // _timer = Timer.periodic(Duration(milliseconds: 800), (Timer timer) {
+    //   handleQueueProcessing();
+    // }
+    // );
   }
 
   @override
@@ -35,44 +35,44 @@ class ObjectDetectorPainter extends CustomPainter {
     // super.dispose();
   }
 
-  void stopSpeaking() {
-    isSpeaking = false;
-    dispose();
-  }
+  // void stopSpeaking() {
+  //   isSpeaking = false;
+  //   dispose();
+  // }
 
 
-  void updateMode(bool mode) {
-    if (mode) {
-      _timer = Timer.periodic(Duration(milliseconds: 800), (Timer timer) {
-        handleQueueProcessing();
-      });
-    } else {
-      stopSpeaking();
-      wordQueue.clear();
-      _isModeActive = mode;
-    }
-  }
+  // void updateMode(bool mode) {
+  //   if (mode) {
+  //     // _timer = Timer.periodic(Duration(milliseconds: 800), (Timer timer) {
+  //     //   handleQueueProcessing();
+  //     // });
+  //   } else {
+  //     stopSpeaking();
+  //     wordQueue.clear();
+  //     _isModeActive = mode;
+  //   }
+  // }
 
 
 
-  void handleQueueProcessing() {
-    if (!isSpeaking && wordQueue.isNotEmpty) {
-      processQueue();
-    }
-  }
+  // void handleQueueProcessing() {
+  //   if (!isSpeaking && wordQueue.isNotEmpty) {
+  //     processQueue();
+  //   }
+  // }
 
-  Future<void> processQueue() async {
-    if (globals.targetSearch =="") {
-      updateMode(false);
-      return;
-    } else if (wordQueue.isEmpty || isSpeaking) {
-      return;
-    }
-    var word = wordQueue.removeAt(0);
-    isSpeaking = true;
-    await speak(word);
-    isSpeaking = false;
-  }
+  // Future<void> processQueue() async {
+  //   if (globals.targetSearch =="") {
+  //     updateMode(false);
+  //     return;
+  //   } else if (wordQueue.isEmpty || isSpeaking) {
+  //     return;
+  //   }
+  //   var word = wordQueue.removeAt(0);
+  //   isSpeaking = true;
+  //   await speak(word);
+  //   isSpeaking = false;
+  // }
 
 
 
@@ -137,7 +137,8 @@ class ObjectDetectorPainter extends CustomPainter {
         builder.addText('$matchingLabel ${calculatePosition(centerX, size.width)}\n');
         final text_to_speech = '$matchingLabel ${calculatePosition(centerX, size.width)}\n';
         if (text_to_speech != lastSpokenWord) {
-          wordQueue.add(text_to_speech);
+          // wordQueue.add(text_to_speech);
+          globals.wordSearchingQueue.add(text_to_speech);
           lastSpokenWord = text_to_speech;
         }
         builder.pop();
@@ -151,7 +152,8 @@ class ObjectDetectorPainter extends CustomPainter {
         builder.addText('${label.text} ${label.confidence} ${calculatePosition(centerX, size.width)}\n');
         final text_to_speech = '${label.text}';
         if (text_to_speech != lastSpokenWord) {
-          wordQueue.add(text_to_speech);
+          // wordQueue.add(text_to_speech);
+          globals.wordDescribingQueue.add(text_to_speech);
           lastSpokenWord = text_to_speech;
         }
         builder.pop();
