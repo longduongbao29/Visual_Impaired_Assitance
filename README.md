@@ -1,16 +1,9 @@
-# visual_impaired_app
+# Visual Impaired Assitance
 
-A new Flutter project.
+A project made with Flutter, using pre-trained YoLov5 model to detect objects, text-to-speech and speech-to-text plugin to interact with users. The purpose is to help visually impaired people recognize and search for surrounding objects. 
 
-## Getting Started
+There are 2 commands to use the app:
+  - "Describe surroundings"
+  - "Find + obj_name"
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+You can download .APK file here: https://drive.google.com/file/d/1PXaWFMtOc9-6oTAm_vL-iwO-AwUtKINu/view?usp=sharing
